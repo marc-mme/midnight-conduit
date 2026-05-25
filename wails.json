@@ -1,0 +1,12 @@
+{
+  "name": "Tunnel Deck",
+  "outputfilename": "tunnel-deck",
+  "frontend:install": "",
+  "frontend:build": "",
+  "frontend:dev:watcher": "",
+  "frontend:dev:serverUrl": "",
+  "author": {
+    "name": "MidnightConduit",
+    "email": ""
+  }
+}

@@ -1,0 +1,15 @@
+# Build output
+build/
+*.exe
+
+# Config (user-specific)
+tunnels.toml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+frontend/wailsjs/

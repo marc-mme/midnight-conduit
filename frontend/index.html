@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tunnel Deck</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <h1>Tunnel Deck</h1>
+    </div>
+    <nav>
+      <button id="btn-start-auto">▶ Auto-Start</button>
+      <button id="btn-stop-all" class="danger">⏹ Stop All</button>
+      <button id="btn-reload">↻ Reload</button>
+      <button id="btn-open-config">✎ Config</button>
+    </nav>
+  </header>
+
+  <main id="tunnel-list">
+    <div class="empty">Loading…</div>
+  </main>
+
+  <footer>
+    <span id="status-bar">Ready</span>
+    <span id="config-path"></span>
+  </footer>
+
+  <template id="tpl">
+    <article class="card" data-id="">
+      <div class="card-body">
+        <div class="card-main">
+          <span class="card-name"></span>
+          <span class="card-details">
+            <code class="card-port"></code>
+            <span class="arrow">→</span>
+            <code class="card-remote"></code>
+            <span>@</span>
+            <span class="card-host"></span>
+          </span>
+        </div>
+        <div class="card-status">
+          <span class="dot"></span>
+          <span class="status-label"></span>
+          <span class="health-badge"></span>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-start icon" title="Start">▶</button>
+        <button class="btn-stop icon" title="Stop">⏹</button>
+        <button class="btn-restart icon" title="Restart">↻</button>
+        <button class="btn-open icon" title="Open in browser">↗</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="main.js"></script>
+</body>
+</html>

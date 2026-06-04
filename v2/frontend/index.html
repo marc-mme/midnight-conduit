@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MidnightConduit v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <h1>MidnightConduit v2</h1>
+    </div>
+    <div class="project-switch">
+      <label for="project-select">Project</label>
+      <select id="project-select"></select>
+      <button id="project-refresh">↻</button>
+    </div>
+    <div id="status-pill">Ready</div>
+  </header>
+
+  <nav class="tabs" id="tabs-nav"></nav>
+
+  <main id="views">
+    <section id="view-projects" class="tab-panel">
+      <div class="toolbar">
+        <button id="btn-add-project">＋ Add Project</button>
+        <button id="btn-refresh-projects">↻</button>
+      </div>
+      <div id="projects-list"></div>
+    </section>
+
+    <section id="view-main" class="tab-panel">
+      <div class="toolbar">
+        <span id="main-tab-title">Discussion</span>
+      </div>
+      <pre id="main-tab-content" class="main-summary">No project selected.</pre>
+    </section>
+
+    <section id="view-ports" class="tab-panel">
+      <div class="toolbar">
+        <button id="btn-ports-refresh">↻ Refresh Ports</button>
+      </div>
+      <div id="ports-list"><div class="empty">No ports currently detected.</div></div>
+    </section>
+
+    <section id="view-tunnels" class="tab-panel">
+      <div class="toolbar">
+        <button id="btn-tunnels-start-all">▶ Start All</button>
+        <button id="btn-tunnels-start-auto">▶ Start Auto</button>
+        <button id="btn-tunnels-stop-all" class="danger">⏹ Stop All</button>
+        <button id="btn-tunnels-add">＋ Add Tunnel</button>
+      </div>
+      <div id="tunnel-list"><div class="empty">No tunnels.</div></div>
+    </section>
+
+    <section id="view-orchestrator" class="tab-panel">
+      <div class="toolbar orch-actions">
+        <button id="orch-start">▶ Start Orchestrator</button>
+        <button id="orch-shutdown" disabled>⏹ Shutdown</button>
+        <button id="orch-reload">↻ Reload Config</button>
+        <button id="orch-start-all">▶ Start All</button>
+        <button id="orch-stop-all" disabled>⏹ Stop All</button>
+      </div>
+      <div id="orch-list"><div class="empty">Orchestrator not running.</div></div>
+    </section>
+
+    <section id="view-servers" class="tab-panel">
+      <div class="toolbar">
+        <button id="btn-servers-add">＋ Add Server</button>
+        <button id="btn-servers-refresh">↻ Refresh</button>
+      </div>
+      <div id="servers-list"><div class="empty">No servers configured.</div></div>
+    </section>
+
+    <section id="view-custom" class="tab-panel"></section>
+
+    <div id="tunnel-add-form" class="inline-form collapsed">
+      <h3 id="tf-form-title">Create Tunnel</h3>
+      <div class="form-row">
+        <label>Name <input id="tf-name" placeholder="my-tunnel" /></label>
+        <label>SSH Host <input id="tf-host" placeholder="user@host" /></label>
+      </div>
+      <div class="form-row">
+        <label>Local Port <input id="tf-lport" type="number" placeholder="3000" /></label>
+        <label>Remote Host <input id="tf-rhost" placeholder="localhost" /></label>
+        <label>Remote Port <input id="tf-rport" type="number" placeholder="3000" /></label>
+      </div>
+      <div class="form-row">
+        <label>Password <input id="tf-pass" placeholder="(optional)" /></label>
+        <label>Identity File <input id="tf-ident" placeholder="(optional)" /></label>
+      </div>
+      <div class="form-row">
+        <label>Open URL <input id="tf-open" placeholder="http://localhost:3000" /></label>
+        <label>Health URL <input id="tf-health" placeholder="http://localhost:3000/health" /></label>
+      </div>
+      <div class="form-row">
+        <label class="checkbox-label"><input id="tf-autostart" type="checkbox" /> Auto-start</label>
+      </div>
+      <div class="form-actions">
+        <button id="btn-tf-save">Save</button>
+        <button id="btn-tf-cancel">Cancel</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span id="status-bar">Ready</span>
+    <div class="footer-actions">
+      <button id="btn-add-tab">＋ Add Tab</button>
+      <span id="config-path"></span>
+    </div>
+  </footer>
+
+  <section id="orch-log-viewer" class="process-log-viewer collapsed">
+    <div class="process-log-header">
+      <span id="orch-log-title">Process logs</span>
+      <div>
+        <button id="orch-log-refresh">Refresh</button>
+        <button id="orch-log-close">Close</button>
+      </div>
+    </div>
+    <pre id="orch-log-output"></pre>
+  </section>
+
+  <div id="log-panel" class="log-panel collapsed">
+    <div class="log-header">
+      <span>📋 App log</span>
+      <div>
+        <button id="log-clear">Clear</button>
+      </div>
+    </div>
+    <div id="log-output"></div>
+  </div>
+  <button id="log-toggle" class="log-toggle">📋</button>
+
+  <template id="tpl-port">
+    <article class="card" data-pid="">
+      <div class="card-body">
+        <div class="card-main">
+          <span class="card-name"></span>
+          <span class="card-details">
+            <code class="card-port"></code>
+            <span class="slash">@</span>
+            <span class="card-protocol"></span>
+            <span class="card-state"></span>
+            <span class="card-pid"></span>
+          </span>
+        </div>
+        <div class="card-status">
+          <span class="dot"></span>
+          <span class="status-label"></span>
+          <span class="health-badge"></span>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-open icon" title="Open in browser">↗</button>
+        <button class="btn-stop icon" title="Stop process">⏹</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="tpl-tunnel">
+    <article class="card" data-id="">
+      <div class="card-body">
+        <div class="card-main">
+          <span class="card-name"></span>
+          <span class="card-details">
+            <code class="card-port"></code>
+            <span class="arrow">→</span>
+            <code class="card-remote"></code>
+            <span>@</span>
+            <span class="card-host"></span>
+          </span>
+        </div>
+        <div class="card-status">
+          <span class="dot"></span>
+          <span class="status-label"></span>
+          <span class="health-badge"></span>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-start icon" title="Start">▶</button>
+        <button class="btn-stop icon" title="Stop">⏹</button>
+        <button class="btn-restart icon" title="Restart">↻</button>
+        <button class="btn-edit icon" title="Edit">✎</button>
+        <button class="btn-open icon" title="Open">↗</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="tpl-server">
+    <article class="card" data-id="">
+      <div class="card-body">
+        <div class="card-main">
+          <span class="card-name"></span>
+          <span class="card-details">
+            <code class="server-cmd"></code>
+            <code class="server-img"></code>
+          </span>
+        </div>
+        <div class="card-status">
+          <span class="dot"></span>
+          <span class="status-label">stopped</span>
+          <span class="health-badge"></span>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-delete icon" title="Delete">✕</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="tpl-orch">
+    <article class="card" data-name="">
+      <div class="card-body">
+        <div class="card-main">
+          <span class="card-name"></span>
+          <span class="card-details">
+            <span class="orch-ns"></span>
+            <code class="orch-port"></code>
+          </span>
+        </div>
+        <div class="card-status">
+          <span class="dot"></span>
+          <span class="status-label"></span>
+          <span class="health-badge"></span>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-start icon" title="Start">▶</button>
+        <button class="btn-stop icon" title="Stop">⏹</button>
+        <button class="btn-restart icon" title="Restart">↻</button>
+        <button class="btn-logs icon" title="Logs">≡</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="main.js"></script>
+</body>
+</html>

@@ -45,21 +45,6 @@ header {
 .logo svg { color: var(--accent); }
 .logo h1 { font-size: 14px; font-weight: 600; letter-spacing: -0.3px; }
 
-nav { display:flex; gap:4px; -webkit-app-region: no-drag; }
-nav button {
-  padding: 4px 10px;
-  font-size: 11px;
-  font-family: var(--font);
-  background: var(--surface2);
-  color: var(--fg-dim);
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-nav button:hover { color: var(--fg); background: var(--border); }
-nav button.danger:hover { color: var(--red); }
-
 /* ── Tunnel cards ── */
 main {
   flex:1;
@@ -150,3 +135,192 @@ footer {
 main::-webkit-scrollbar { width:5px; }
 main::-webkit-scrollbar-track { background:transparent; }
 main::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 10px;
+  flex-shrink: 0;
+}
+.tab {
+  padding: 7px 16px;
+  font-size: 12px;
+  font-family: var(--font);
+  background: none;
+  color: var(--fg-dim);
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tab:hover { color: var(--fg); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-panel { display: flex; flex-direction: column; gap: 6px; }
+
+/* ── In-tab toolbar ── */
+.toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 6px 0 2px;
+  flex-shrink: 0;
+}
+.toolbar button {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--font);
+  background: var(--surface2);
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.toolbar button:hover { color: var(--fg); background: var(--border); }
+.toolbar button.danger:hover { color: var(--red); }
+
+/* ── Orchestrator toolbar ── */
+.orch-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 0;
+  flex-shrink: 0;
+}
+.orch-actions button {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-family: var(--font);
+  background: var(--surface2);
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.orch-actions button:hover:not(:disabled) { color: var(--fg); background: var(--border); }
+.orch-actions button:disabled { opacity: 0.35; cursor: default; }
+
+/* ── Orchestrator namespace badge ── */
+.orch-ns {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.orch-port { color: var(--accent); }
+
+/* ── Process log viewer ── */
+.process-log-viewer {
+  margin-top: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+  max-height: 42vh;
+}
+.process-log-viewer.collapsed { display: none; }
+.process-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.process-log-header span { color: var(--accent); font-weight: 600; }
+.process-log-header button {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-family: var(--font);
+  background: var(--surface);
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.process-log-header button:hover { color: var(--fg); background: var(--border); }
+#orch-log-output {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+  margin: 0;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ── Log panel ── */
+.log-panel {
+  position: fixed;
+  bottom: 28px;
+  left: 0;
+  right: 0;
+  height: 180px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.2s;
+  z-index: 10;
+}
+.log-panel.collapsed { height: 0; overflow: hidden; border-top: none; }
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 14px;
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+.log-header span { color: var(--accent); font-size: 11px; font-family: var(--font); }
+.log-header button {
+  font-size: 10px;
+  font-family: var(--font);
+  background: none;
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1px 8px;
+  cursor: pointer;
+}
+#log-output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 14px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--fg-dim);
+}
+#log-output .log-info { color: var(--fg); }
+#log-output .log-warn { color: var(--orange); }
+#log-output .log-err  { color: var(--red); }
+.log-toggle {
+  position: fixed;
+  bottom: 30px;
+  right: 14px;
+  z-index: 11;
+  font-size: 13px;
+  background: var(--surface2);
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+  cursor: pointer;
+}

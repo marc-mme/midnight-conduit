@@ -9,8 +9,9 @@ import (
 )
 
 type Settings struct {
-	StartOnLogin             bool `toml:"start_on_login"`
-	AutoStartTunnelsOnLaunch bool `toml:"auto_start_tunnels_on_launch"`
+	StartOnLogin             bool   `toml:"start_on_login"`
+	AutoStartTunnelsOnLaunch bool   `toml:"auto_start_tunnels_on_launch"`
+	ProcessComposeConfig     string `toml:"process_compose_config"`
 }
 
 func DefaultSettings() Settings {

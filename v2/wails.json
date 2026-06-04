@@ -1,0 +1,12 @@
+{
+  "name": "MidnightConduit v2",
+  "outputfilename": "midnight-conduit-v2",
+  "frontend:install": "",
+  "frontend:build": "",
+  "frontend:dev:watcher": "",
+  "frontend:dev:serverUrl": "",
+  "author": {
+    "name": "MidnightConduit",
+    "email": ""
+  }
+}

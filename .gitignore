@@ -5,6 +5,10 @@ build/
 # Config (user-specific)
 tunnels.toml
 
+# v2 build assets
+v2/build/
+v2/frontend/wailsjs/
+
 # OS
 .DS_Store
 Thumbs.db

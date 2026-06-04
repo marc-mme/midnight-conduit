@@ -9,6 +9,7 @@ import (
 	"tunnel-deck/config"
 	"tunnel-deck/db"
 	"tunnel-deck/health"
+	"tunnel-deck/orchestrator"
 	"tunnel-deck/tunnel"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -19,6 +20,7 @@ type App struct {
 	cfg     *config.AppConfig
 	store   *db.Store
 	manager *tunnel.Manager
+	orch    *orchestrator.Orchestrator
 }
 
 func NewApp() *App {
@@ -43,6 +45,12 @@ func (a *App) startup(ctx context.Context) {
 	}
 
 	a.store.MarkAllStopped()
+
+	pcConfig := a.cfg.Settings.ProcessComposeConfig
+	if pcConfig == "" {
+		pcConfig = "process-compose.yaml"
+	}
+	a.orch = orchestrator.New([]string{pcConfig})
 }
 
 func (a *App) shutdown(ctx context.Context) {
@@ -71,9 +79,22 @@ type TunnelInfo struct {
 }
 
 type AppInfo struct {
-	Tunnels    []TunnelInfo   `json:"tunnels"`
+	Tunnels    []TunnelInfo    `json:"tunnels"`
 	Settings   config.Settings `json:"settings"`
-	ConfigPath string         `json:"config_path"`
+	ConfigPath string          `json:"config_path"`
+}
+
+type ActionFailure struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Error string `json:"error"`
+}
+
+type AutoStartTunnelsResult struct {
+	Started        []string        `json:"started"`
+	AlreadyRunning []string        `json:"already_running"`
+	Skipped        []string        `json:"skipped"`
+	Failed         []ActionFailure `json:"failed"`
 }
 
 func (a *App) GetAppInfo() (*AppInfo, error) {
@@ -172,18 +193,54 @@ func (a *App) RestartTunnel(tunnelID string) (*TunnelInfo, error) {
 	return a.StartTunnel(tunnelID)
 }
 
-func (a *App) StartAutoTunnels() ([]string, error) {
-	var started []string
-	for _, t := range a.cfg.Tunnels {
-		if t.AutoStart && !a.manager.IsRunning(t.ID) {
-			if _, err := a.StartTunnel(t.ID); err != nil {
-				runtime.LogWarningf(a.ctx, "auto-start %q: %v", t.ID, err)
-				continue
-			}
-			started = append(started, t.ID)
-		}
+func (a *App) StartAutoTunnels() (*AutoStartTunnelsResult, error) {
+	result := &AutoStartTunnelsResult{
+		Started:        []string{},
+		AlreadyRunning: []string{},
+		Skipped:        []string{},
+		Failed:         []ActionFailure{},
 	}
-	return started, nil
+
+	for _, t := range a.cfg.Tunnels {
+		if !t.AutoStart {
+			result.Skipped = append(result.Skipped, t.ID)
+			continue
+		}
+		if a.manager.IsRunning(t.ID) {
+			result.AlreadyRunning = append(result.AlreadyRunning, t.ID)
+			continue
+		}
+		if _, err := a.StartTunnel(t.ID); err != nil {
+			runtime.LogWarningf(a.ctx, "auto-start %q: %v", t.ID, err)
+			result.Failed = append(result.Failed, ActionFailure{ID: t.ID, Name: t.Name, Error: err.Error()})
+			continue
+		}
+		result.Started = append(result.Started, t.ID)
+	}
+	return result, nil
+}
+
+func (a *App) StartAllTunnels() (*AutoStartTunnelsResult, error) {
+	result := &AutoStartTunnelsResult{
+		Started:        []string{},
+		AlreadyRunning: []string{},
+		Skipped:        []string{},
+		Failed:         []ActionFailure{},
+	}
+
+	for _, t := range a.cfg.Tunnels {
+		if a.manager.IsRunning(t.ID) {
+			result.AlreadyRunning = append(result.AlreadyRunning, t.ID)
+			continue
+		}
+		if _, err := a.StartTunnel(t.ID); err != nil {
+			runtime.LogWarningf(a.ctx, "start-all %q: %v", t.ID, err)
+			result.Failed = append(result.Failed, ActionFailure{ID: t.ID, Name: t.Name, Error: err.Error()})
+			continue
+		}
+		result.Started = append(result.Started, t.ID)
+	}
+	return result, nil
 }
 
 func (a *App) StopAllTunnels() error {
@@ -285,4 +342,54 @@ func strPtr(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// ── Orchestrator Wails bindings ──
+
+func (a *App) OrchStart() error {
+	return a.orch.Start()
+}
+
+func (a *App) OrchShutdown() error {
+	return a.orch.Shutdown()
+}
+
+func (a *App) OrchReloadConfig(path string) error {
+	return a.orch.ReloadConfig([]string{path})
+}
+
+func (a *App) OrchListProcesses() ([]orchestrator.ProcessInfo, error) {
+	return a.orch.ListProcesses()
+}
+
+func (a *App) OrchGetProcessLogs(name string, limit int) (string, error) {
+	return a.orch.GetProcessLogs(name, limit)
+}
+
+func (a *App) OrchStartProcess(name string) error {
+	return a.orch.StartProcess(name)
+}
+
+func (a *App) OrchStopProcess(name string) error {
+	return a.orch.StopProcess(name)
+}
+
+func (a *App) OrchRestartProcess(name string) error {
+	return a.orch.RestartProcess(name)
+}
+
+func (a *App) OrchStartAll() error {
+	return a.orch.StartAll()
+}
+
+func (a *App) OrchStopAll() error {
+	return a.orch.StopAll()
+}
+
+func (a *App) OrchIsRunning() bool {
+	return a.orch.IsRunning()
+}
+
+func (a *App) OrchGetConfigPath() string {
+	return a.orch.GetConfigPath()
 }

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -56,7 +57,6 @@ func (m *Manager) Start(tunnelID, sshHost, password, identityFile string, localP
 		askpassFile = filepath.Join(tmpDir, fmt.Sprintf("td-askpass-%s.bat", runID[:8]))
 		script := fmt.Sprintf("@echo off\r\necho %s", password)
 		os.WriteFile(askpassFile, []byte(script), 0700)
-		defer os.Remove(askpassFile)
 	} else {
 		args = append(args, "-o", "BatchMode=yes", "-o", "PasswordAuthentication=no")
 	}
@@ -93,6 +93,11 @@ func (m *Manager) Start(tunnelID, sshHost, password, identityFile string, localP
 	m.procs[tunnelID] = proc
 	m.mu.Unlock()
 
+	exited := make(chan struct {
+		exitCode int
+		stderr   string
+	}, 1)
+
 	go func() {
 		err := cmd.Wait()
 		exitCode := 0
@@ -103,13 +108,27 @@ func (m *Manager) Start(tunnelID, sshHost, password, identityFile string, localP
 				exitCode = -1
 			}
 		}
+		stderr := stderrBuf.String()
 		m.mu.Lock()
 		delete(m.procs, tunnelID)
 		m.mu.Unlock()
-		if m.onExit != nil {
-			m.onExit(tunnelID, runID, exitCode, stderrBuf.String())
+		if askpassFile != "" {
+			_ = os.Remove(askpassFile)
 		}
+		if m.onExit != nil {
+			m.onExit(tunnelID, runID, exitCode, stderr)
+		}
+		exited <- struct {
+			exitCode int
+			stderr   string
+		}{exitCode: exitCode, stderr: stderr}
 	}()
+
+	select {
+	case res := <-exited:
+		return nil, fmt.Errorf("ssh for %q exited immediately (code %d): %s", tunnelID, res.exitCode, res.stderr)
+	case <-time.After(800 * time.Millisecond):
+	}
 
 	return proc, nil
 }
@@ -122,7 +141,6 @@ func (m *Manager) Stop(tunnelID string) (*Process, error) {
 		return nil, fmt.Errorf("tunnel %q is not running", tunnelID)
 	}
 	proc.Cmd.Process.Kill()
-	proc.Cmd.Wait()
 	delete(m.procs, tunnelID)
 	return proc, nil
 }
@@ -149,7 +167,6 @@ func (m *Manager) StopAll() {
 	defer m.mu.Unlock()
 	for id, proc := range m.procs {
 		proc.Cmd.Process.Kill()
-		proc.Cmd.Wait()
 		delete(m.procs, id)
 	}
 }

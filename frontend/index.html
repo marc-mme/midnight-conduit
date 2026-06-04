@@ -3,25 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tunnel Deck</title>
+  <title>MidnightConduit</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header>
     <div class="logo">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      <h1>Tunnel Deck</h1>
+      <h1>MidnightConduit</h1>
     </div>
-    <nav>
-      <button id="btn-start-auto">▶ Auto-Start</button>
-      <button id="btn-stop-all" class="danger">⏹ Stop All</button>
-      <button id="btn-reload">↻ Reload</button>
-      <button id="btn-open-config">✎ Config</button>
-    </nav>
   </header>
 
-  <main id="tunnel-list">
-    <div class="empty">Loading…</div>
+  <div class="tabs">
+    <button class="tab active" data-tab="tunnels">🔗 Tunnels</button>
+    <button class="tab" data-tab="orchestrator">⚙️ Orchestrator</button>
+  </div>
+
+  <main>
+    <section id="tab-tunnels" class="tab-panel active">
+      <div class="toolbar">
+        <button id="btn-start-all-tunnels">▶ Start All</button>
+        <button id="btn-start-auto-tunnels">▶ Start Auto</button>
+        <button id="btn-stop-all-tunnels" class="danger">⏹ Stop All</button>
+        <button id="btn-reload-tunnels">↻ Reload</button>
+        <button id="btn-open-config">✎ Config</button>
+      </div>
+      <div id="tunnel-list"><div class="empty">Loading…</div></div>
+    </section>
+    <section id="tab-orchestrator" class="tab-panel" style="display:none">
+      <div id="orch-toolbar" class="orch-actions">
+        <button id="orch-start">▶ Start Orchestrator</button>
+        <button id="orch-shutdown" disabled>⏹ Shutdown</button>
+        <button id="orch-reload">↻ Reload Config</button>
+        <button id="orch-start-all">▶ Start All</button>
+        <button id="orch-stop-all" disabled>⏹ Stop All</button>
+      </div>
+      <div id="orch-list"><div class="empty">Orchestrator not running. Click Start.</div></div>
+      <section id="orch-log-viewer" class="process-log-viewer collapsed">
+        <div class="process-log-header">
+          <span id="orch-log-title">Process logs</span>
+          <div>
+            <button id="orch-log-refresh">Refresh</button>
+            <button id="orch-log-close">Close</button>
+          </div>
+        </div>
+        <pre id="orch-log-output"></pre>
+      </section>
+    </section>
   </main>
 
   <footer>
@@ -29,7 +57,16 @@
     <span id="config-path"></span>
   </footer>
 
-  <template id="tpl">
+  <div id="log-panel" class="log-panel collapsed">
+    <div class="log-header">
+      <span>📋 Log</span>
+      <button id="log-clear">Clear</button>
+    </div>
+    <div id="log-output"></div>
+  </div>
+  <button id="log-toggle" class="log-toggle">📋</button>
+
+  <template id="tpl-tunnel">
     <article class="card" data-id="">
       <div class="card-body">
         <div class="card-main">
@@ -52,7 +89,32 @@
         <button class="btn-start icon" title="Start">▶</button>
         <button class="btn-stop icon" title="Stop">⏹</button>
         <button class="btn-restart icon" title="Restart">↻</button>
-        <button class="btn-open icon" title="Open in browser">↗</button>
+        <button class="btn-open icon" title="Open">↗</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="tpl-orch">
+    <article class="card" data-name="">
+      <div class="card-body">
+        <div class="card-main">
+          <span class="card-name"></span>
+          <span class="card-details">
+            <span class="orch-ns"></span>
+            <code class="orch-port"></code>
+          </span>
+        </div>
+        <div class="card-status">
+          <span class="dot"></span>
+          <span class="status-label"></span>
+          <span class="health-badge"></span>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-start icon" title="Start">▶</button>
+        <button class="btn-stop icon" title="Stop">⏹</button>
+        <button class="btn-restart icon" title="Restart">↻</button>
+        <button class="btn-logs icon" title="Logs">≡</button>
       </div>
     </article>
   </template>

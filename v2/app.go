@@ -1043,6 +1043,16 @@ func (a *App) ClearDatabaseConfig() error {
 	return d.SaveDBURL("")
 }
 
+// MigrateLocalDatabase copies the local SQLite config into the currently
+// connected database (must be Postgres), replacing its contents. Returns the
+// per-table row counts copied.
+func (a *App) MigrateLocalDatabase() (map[string]int, error) {
+	if a.store == nil {
+		return nil, fmt.Errorf("store not ready")
+	}
+	return d.MigrateLocalSQLiteInto(a.store)
+}
+
 func (a *App) OpenDBFile() error {
 	path, err := d.DataPath()
 	if err != nil {

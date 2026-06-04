@@ -399,6 +399,8 @@ footer {
   padding: 8px 10px;
 }
 .db-url-label input:focus { outline: none; border-color: var(--accent); }
+.db-migrate { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+.db-migrate h3 { font-size: 14px; margin: 0; }
 
 .tab-delete {
   margin-left: 6px;

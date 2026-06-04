@@ -92,6 +92,14 @@
           <button id="btn-db-save">Save &amp; Use</button>
           <button id="btn-db-revert" class="danger">Revert to Local SQLite</button>
         </div>
+
+        <div class="db-migrate">
+          <h3>Migrate local data</h3>
+          <p class="db-hint">Copy this machine's local SQLite config (projects, tunnels, tabs, settings) into the connected Postgres database, <strong>replacing</strong> its contents. Available only while connected to Postgres.</p>
+          <div class="form-actions">
+            <button id="btn-db-migrate">Migrate Local SQLite → This Database</button>
+          </div>
+        </div>
       </div>
     </section>
 

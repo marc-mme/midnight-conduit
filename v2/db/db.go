@@ -247,6 +247,102 @@ func TestPostgres(url string) error {
 // Driver reports the active backend ("sqlite" or "postgres").
 func (s *Store) Driver() string { return s.driver }
 
+// migrationTables lists every table in parent-first (insert-safe) order:
+// projects must precede the tables that FK it.
+var migrationTables = []string{
+	"app_settings", "api_keys", "projects",
+	"tunnels", "ui_tabs", "docker_processes", "cli_jobs",
+	"tunnel_state", "tunnel_runs",
+}
+
+// MigrateLocalSQLiteInto copies all rows from the local SQLite file into dst
+// (which must be Postgres), replacing dst's contents so it mirrors the local
+// config. Runs in one transaction; returns per-table copied row counts.
+func MigrateLocalSQLiteInto(dst *Store) (map[string]int, error) {
+	if dst == nil || dst.driver != "postgres" {
+		return nil, fmt.Errorf("current backend is not postgres — nothing to migrate into")
+	}
+	path, err := DataPath()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := os.Stat(path); err != nil {
+		return nil, fmt.Errorf("local sqlite not found at %s", path)
+	}
+	src, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, fmt.Errorf("open local sqlite: %w", err)
+	}
+	defer src.Close()
+
+	tx, err := dst.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	// Clear destination child-first so FK constraints hold.
+	for i := len(migrationTables) - 1; i >= 0; i-- {
+		if _, err := tx.Exec("DELETE FROM " + migrationTables[i]); err != nil {
+			return nil, fmt.Errorf("clear %s: %w", migrationTables[i], err)
+		}
+	}
+
+	counts := map[string]int{}
+	for _, table := range migrationTables {
+		n, err := copyTable(src, tx, table)
+		if err != nil {
+			return nil, fmt.Errorf("copy %s: %w", table, err)
+		}
+		counts[table] = n
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return counts, nil
+}
+
+func copyTable(src *sql.DB, tx *sql.Tx, table string) (int, error) {
+	rows, err := src.Query("SELECT * FROM " + table)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	cols, err := rows.Columns()
+	if err != nil {
+		return 0, err
+	}
+	ph := make([]string, len(cols))
+	for i := range ph {
+		ph[i] = fmt.Sprintf("$%d", i+1)
+	}
+	insert := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, strings.Join(cols, ", "), strings.Join(ph, ", "))
+
+	n := 0
+	for rows.Next() {
+		vals := make([]interface{}, len(cols))
+		ptrs := make([]interface{}, len(cols))
+		for i := range vals {
+			ptrs[i] = &vals[i]
+		}
+		if err := rows.Scan(ptrs...); err != nil {
+			return n, err
+		}
+		// modernc returns TEXT as []byte; Postgres text columns want string.
+		for i, v := range vals {
+			if b, ok := v.([]byte); ok {
+				vals[i] = string(b)
+			}
+		}
+		if _, err := tx.Exec(insert, vals...); err != nil {
+			return n, err
+		}
+		n++
+	}
+	return n, rows.Err()
+}
+
 // Open connects to Postgres when an app-level URL is configured (saved locally
 // or via MIDNIGHT_CONDUIT_DB_URL) — shared remote state across machines —
 // otherwise falls back to the local SQLite file so the app still runs offline.

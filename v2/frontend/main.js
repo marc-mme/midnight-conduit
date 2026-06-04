@@ -786,6 +786,12 @@ async function renderDatabasePanel() {
   if (note) note.classList.toggle('hidden', !cfg.needs_restart);
   const sp = document.getElementById('db-sqlite-path');
   if (sp) sp.textContent = cfg.sqlite_path ? `Local SQLite file: ${cfg.sqlite_path}` : '';
+  // Migration only makes sense when connected to Postgres.
+  const mig = document.getElementById('btn-db-migrate');
+  if (mig) {
+    mig.disabled = cfg.current !== 'postgres';
+    mig.title = cfg.current === 'postgres' ? '' : 'Connect to Postgres first';
+  }
   // The URL field is left blank on purpose — we never echo the saved password
   // back into an editable field. Type a fresh URL to change the target.
 }
@@ -823,6 +829,18 @@ document.getElementById('btn-db-revert').onclick = async () => {
     await renderDatabasePanel();
   } catch (e) {
     showErr('Revert failed: ' + e);
+  }
+};
+
+document.getElementById('btn-db-migrate').onclick = async () => {
+  if (!window.confirm('Copy local SQLite config into the connected database, REPLACING its current contents? This cannot be undone.')) return;
+  try {
+    const counts = await app.MigrateLocalDatabase();
+    const total = Object.values(counts || {}).reduce((a, b) => a + (b || 0), 0);
+    showOk(`Migrated ${total} rows from local SQLite.`);
+    await renderDatabasePanel();
+  } catch (e) {
+    showErr('Migration failed: ' + e);
   }
 };
 

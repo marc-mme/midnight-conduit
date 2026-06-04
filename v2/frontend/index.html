@@ -74,6 +74,27 @@
       <div id="servers-list"><div class="empty">No servers configured.</div></div>
     </section>
 
+    <section id="view-database" class="tab-panel">
+      <div class="db-config">
+        <div class="db-status">
+          <span>Currently connected:</span>
+          <span id="db-current" class="db-badge">—</span>
+          <span id="db-restart-note" class="db-restart hidden">⟳ Restart to apply the saved change.</span>
+        </div>
+        <h3>Remote database (Postgres)</h3>
+        <p class="db-hint">Point the app at a Postgres database to share projects, tunnels and settings across machines. Leave blank and Revert to use the local SQLite database. The connection setting itself is stored locally on this machine.</p>
+        <label class="db-url-label">Database URL
+          <input id="db-url" placeholder="postgres://user:pass@host:5432/dbname?sslmode=disable" autocomplete="off" spellcheck="false" />
+        </label>
+        <div id="db-sqlite-path" class="db-hint"></div>
+        <div class="form-actions">
+          <button id="btn-db-test">Test Connection</button>
+          <button id="btn-db-save">Save &amp; Use</button>
+          <button id="btn-db-revert" class="danger">Revert to Local SQLite</button>
+        </div>
+      </div>
+    </section>
+
     <section id="view-custom" class="tab-panel"></section>
 
     <div id="tunnel-add-form" class="inline-form collapsed">

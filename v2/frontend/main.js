@@ -34,7 +34,7 @@ const tfLPort = document.getElementById('tf-lport');
 const tfRHost = document.getElementById('tf-rhost');
 const tfRPort = document.getElementById('tf-rport');
 
-const protectedTabKeys = new Set(['main', 'ports', 'tunnels', 'servers', 'orchestrator']);
+const protectedTabKeys = new Set(['main', 'ports', 'tunnels', 'servers', 'orchestrator', 'database']);
 function isProtectedTabKey(key) {
   return protectedTabKeys.has(String(key).trim());
 }
@@ -462,6 +462,7 @@ function mapTabToPanel(tab) {
   if (tab.key === 'tunnels') return 'view-tunnels';
   if (tab.key === 'servers') return 'view-servers';
   if (tab.key === 'orchestrator') return 'view-orchestrator';
+  if (tab.key === 'database') return 'view-database';
   return null;
 }
 
@@ -615,6 +616,7 @@ function renderTabs() {
     { key: 'tunnels', label: 'Tunnels', kind: 'tunnels', sort: -80 },
     { key: 'servers', label: 'Servers', kind: 'servers', sort: -75 },
     { key: 'orchestrator', label: 'Orchestrator', kind: 'orchestrator', sort: -70 },
+    { key: 'database', label: 'Database', kind: 'database', sort: -60 },
   ]) {
     if (!existing.has(fallback.key)) {
       fixed.push({
@@ -650,7 +652,7 @@ function renderTabs() {
     return;
   }
 
-  const knownPanels = new Set(['view-tunnels', 'view-orchestrator', 'view-main', 'view-ports', 'view-servers', 'view-projects']);
+  const knownPanels = new Set(['view-tunnels', 'view-orchestrator', 'view-main', 'view-ports', 'view-servers', 'view-projects', 'view-database']);
   for (const tab of merged) {
     const btn = document.createElement('button');
     btn.className = 'tab';
@@ -759,8 +761,70 @@ async function refreshCurrentTab() {
   }
   if (currentTab === 'projects') {
     renderProjectsPanel();
+    return;
+  }
+  if (currentTab === 'database') {
+    renderDatabasePanel();
   }
 }
+
+async function renderDatabasePanel() {
+  let cfg;
+  try {
+    cfg = await app.GetDatabaseConfig();
+  } catch (e) {
+    showErr('Load DB config failed: ' + e);
+    return;
+  }
+  const cur = document.getElementById('db-current');
+  if (cur) {
+    cur.textContent = cfg.current === 'postgres'
+      ? `Postgres — ${cfg.url_masked || 'remote'}`
+      : 'Local SQLite';
+  }
+  const note = document.getElementById('db-restart-note');
+  if (note) note.classList.toggle('hidden', !cfg.needs_restart);
+  const sp = document.getElementById('db-sqlite-path');
+  if (sp) sp.textContent = cfg.sqlite_path ? `Local SQLite file: ${cfg.sqlite_path}` : '';
+  // The URL field is left blank on purpose — we never echo the saved password
+  // back into an editable field. Type a fresh URL to change the target.
+}
+
+document.getElementById('btn-db-test').onclick = async () => {
+  const url = document.getElementById('db-url').value.trim();
+  if (!url) { showWarn('Enter a database URL to test.'); return; }
+  try {
+    await app.TestDatabaseConnection(url);
+    showOk('Connection OK ✓');
+  } catch (e) {
+    showErr('Connection failed: ' + e);
+  }
+};
+
+document.getElementById('btn-db-save').onclick = async () => {
+  const url = document.getElementById('db-url').value.trim();
+  if (!url) { showWarn('Enter a URL, or use Revert to go back to local SQLite.'); return; }
+  try {
+    await app.SetDatabaseConfig(url);
+    showOk('Saved. Restart MidnightConduit to connect.');
+    document.getElementById('db-url').value = '';
+    await renderDatabasePanel();
+  } catch (e) {
+    showErr('Save failed: ' + e);
+  }
+};
+
+document.getElementById('btn-db-revert').onclick = async () => {
+  if (!window.confirm('Revert to local SQLite on next start?')) return;
+  try {
+    await app.ClearDatabaseConfig();
+    showOk('Reverted. Restart to use local SQLite.');
+    document.getElementById('db-url').value = '';
+    await renderDatabasePanel();
+  } catch (e) {
+    showErr('Revert failed: ' + e);
+  }
+};
 
 function renderMainTab() {
   if (!mainTabContent) {

@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -171,12 +172,87 @@ func DataPath() (string, error) {
 	return filepath.Join(dir, "state_v2.sqlite"), nil
 }
 
-// Open connects to Postgres when MIDNIGHT_CONDUIT_DB_URL is set (shared remote
-// state across machines), otherwise falls back to the local SQLite file so the
-// app still runs offline / unconfigured.
+// dbConfigFile is the small LOCAL bootstrap config — it records which database
+// to connect to. It must live locally (not in the DB it points at), so it sits
+// next to the local SQLite file regardless of which backend is active.
+type dbConfigFile struct {
+	URL string `json:"url"`
+}
+
+func dbConfigPath() (string, error) {
+	appData := os.Getenv("APPDATA")
+	if appData == "" {
+		appData = filepath.Join(os.Getenv("HOME"), ".local", "share")
+	}
+	dir := filepath.Join(appData, "Tunnel Deck")
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "db_config.json"), nil
+}
+
+// LoadDBURL returns the app-level database URL saved locally, or "" if none.
+func LoadDBURL() string {
+	path, err := dbConfigPath()
+	if err != nil {
+		return ""
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	var c dbConfigFile
+	if json.Unmarshal(data, &c) != nil {
+		return ""
+	}
+	return strings.TrimSpace(c.URL)
+}
+
+// SaveDBURL persists the app-level database URL locally. Empty string clears it
+// (revert to local SQLite). Takes effect on the next Open() / app restart.
+func SaveDBURL(url string) error {
+	path, err := dbConfigPath()
+	if err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(dbConfigFile{URL: strings.TrimSpace(url)}, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0600)
+}
+
+// ResolveDBURL returns the effective Postgres URL and where it came from:
+// the saved local config file first, then the env var, else "" (use SQLite).
+func ResolveDBURL() (url string, source string) {
+	if u := LoadDBURL(); u != "" {
+		return u, "config"
+	}
+	if u := strings.TrimSpace(os.Getenv("MIDNIGHT_CONDUIT_DB_URL")); u != "" {
+		return u, "env"
+	}
+	return "", "sqlite"
+}
+
+// TestPostgres verifies a Postgres URL can connect, without changing app state.
+func TestPostgres(url string) error {
+	database, err := sql.Open("pgx", strings.TrimSpace(url))
+	if err != nil {
+		return err
+	}
+	defer database.Close()
+	return database.Ping()
+}
+
+// Driver reports the active backend ("sqlite" or "postgres").
+func (s *Store) Driver() string { return s.driver }
+
+// Open connects to Postgres when an app-level URL is configured (saved locally
+// or via MIDNIGHT_CONDUIT_DB_URL) — shared remote state across machines —
+// otherwise falls back to the local SQLite file so the app still runs offline.
 func Open() (*Store, error) {
-	if dsn := strings.TrimSpace(os.Getenv("MIDNIGHT_CONDUIT_DB_URL")); dsn != "" {
-		return openPostgres(dsn)
+	if url, _ := ResolveDBURL(); url != "" {
+		return openPostgres(url)
 	}
 	return openSQLite()
 }

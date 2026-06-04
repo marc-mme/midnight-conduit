@@ -970,6 +970,79 @@ func (a *App) CheckTunnelHealthForProject(projectID, tunnelID string) (*health.R
 	return &result, nil
 }
 
+// DatabaseConfig describes the current and pending database backend for the UI.
+type DatabaseConfig struct {
+	Current    string `json:"current"`     // backend in use right now: "sqlite"|"postgres"
+	Effective  string `json:"effective"`   // backend that will be used on next start
+	Source     string `json:"source"`      // "config" | "env" | "sqlite"
+	URLMasked  string `json:"url_masked"`  // configured URL with password masked
+	SQLitePath string `json:"sqlite_path"` // local fallback path
+	NeedsRestart bool `json:"needs_restart"` // saved config differs from running backend
+}
+
+// maskDBURL hides the password in a postgres URL for safe display.
+func maskDBURL(u string) string {
+	i := strings.Index(u, "://")
+	if i < 0 {
+		return u
+	}
+	rest := u[i+3:]
+	at := strings.Index(rest, "@")
+	if at < 0 {
+		return u
+	}
+	creds := rest[:at]
+	if c := strings.Index(creds, ":"); c >= 0 {
+		creds = creds[:c] + ":****"
+	}
+	return u[:i+3] + creds + rest[at:]
+}
+
+// GetDatabaseConfig returns the live + saved database backend for the config page.
+func (a *App) GetDatabaseConfig() (DatabaseConfig, error) {
+	url, source := d.ResolveDBURL()
+	cfg := DatabaseConfig{Source: source}
+	if a.store != nil {
+		cfg.Current = a.store.Driver()
+	}
+	if url != "" {
+		cfg.Effective = "postgres"
+		cfg.URLMasked = maskDBURL(url)
+	} else {
+		cfg.Effective = "sqlite"
+	}
+	if p, err := d.DataPath(); err == nil {
+		cfg.SQLitePath = p
+	}
+	cfg.NeedsRestart = cfg.Current != "" && cfg.Current != cfg.Effective
+	return cfg, nil
+}
+
+// TestDatabaseConnection checks a Postgres URL can connect, without saving it.
+func (a *App) TestDatabaseConnection(url string) error {
+	if strings.TrimSpace(url) == "" {
+		return fmt.Errorf("URL is empty")
+	}
+	return d.TestPostgres(url)
+}
+
+// SetDatabaseConfig saves a Postgres URL (after verifying it connects). Takes
+// effect on restart. An empty URL reverts to local SQLite.
+func (a *App) SetDatabaseConfig(url string) error {
+	url = strings.TrimSpace(url)
+	if url != "" {
+		if err := d.TestPostgres(url); err != nil {
+			return fmt.Errorf("connection test failed: %w", err)
+		}
+	}
+	return d.SaveDBURL(url)
+}
+
+// ClearDatabaseConfig reverts to local SQLite on next start.
+func (a *App) ClearDatabaseConfig() error {
+	return d.SaveDBURL("")
+}
+
 func (a *App) OpenDBFile() error {
 	path, err := d.DataPath()
 	if err != nil {

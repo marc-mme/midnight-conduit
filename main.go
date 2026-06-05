@@ -16,11 +16,11 @@ func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title:  "Tunnel Deck",
-		Width:  680,
-		Height: 520,
-		MinWidth:  480,
-		MinHeight: 360,
+		Title:     "MidnightConduit",
+		Width:     860,
+		Height:    640,
+		MinWidth:  760,
+		MinHeight: 420,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -30,7 +30,6 @@ func main() {
 			app,
 		},
 	})
-
 	if err != nil {
 		log.Fatal(err)
 	}

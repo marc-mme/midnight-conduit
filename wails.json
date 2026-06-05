@@ -1,6 +1,6 @@
 {
-  "name": "Tunnel Deck",
-  "outputfilename": "tunnel-deck",
+  "name": "MidnightConduit",
+  "outputfilename": "midnight-conduit",
   "frontend:install": "",
   "frontend:build": "",
   "frontend:dev:watcher": "",

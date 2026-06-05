@@ -873,7 +873,7 @@ func (a *App) handleMCP(w http.ResponseWriter, r *http.Request) {
 		resultEnvelope["result"] = map[string]interface{}{
 			"protocolVersion": "2025-03-26",
 			"serverInfo": map[string]interface{}{
-				"name":    "midnight-conduit-v2",
+				"name":    "midnight-conduit",
 				"version": "0.1.0",
 			},
 			"capabilities": map[string]interface{}{
